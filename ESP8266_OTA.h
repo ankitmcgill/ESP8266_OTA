@@ -12,6 +12,7 @@
 *   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot
 *   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot/appcode
 *   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot/build
+*   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot-sample
 *
 * REFERENCES
 * ------------
@@ -31,6 +32,7 @@
 #include "espconn.h"
 #include "os_type.h"
 #include "rboot-api.h"
+#include "rboot-ota.h"
 
 
 #define ESP8266_OTA_HTTP_HEADER     "Connection: keep-alive\r\n"\
@@ -45,15 +47,13 @@
 //FUNCTION PROTOTYPES/////////////////////////////////////
 //CONFIGURATION FUNCTIONS
 void ICACHE_FLASH_ATTR ESP8266_OTA_SetDebug(uint8_t debug_on);
-void ICACHE_FLASH_ATTR ESP8266_OTA_Initialize(ip_addr_t server_ip,
+void ICACHE_FLASH_ATTR ESP8266_OTA_Initialize(uint8_t* server_ip,
 											    uint16_t server_port,
 												char* server_path);
-void ICACHE_FLASH_ATTR ESP8266_OTA_SetCallbackFunctions(void (*ota_done_user_cb)(bool));
-
 //CONTROL FUNCTIONS
 void ICACHE_FLASH_ATTR ESP8266_OTA_Start(void);
 
 //INTERNAL CALLBACK FUNCTIONS
-void ICACHE_FLASH_ATTR _esp8266_ota_done_cb(void *arg, bool result);
+void ICACHE_FLASH_ATTR _esp8266_ota_done_cb(bool result, uint8_t rom_slot);
 //END FUNCTION PROTOTYPES/////////////////////////////////
 #endif

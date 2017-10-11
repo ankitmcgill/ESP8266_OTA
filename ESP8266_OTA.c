@@ -12,6 +12,7 @@
 *   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot
 *   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot/appcode
 *   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot/build
+*   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot-sample
 *
 * REFERENCES
 * ------------
@@ -28,12 +29,11 @@
 static uint8_t _esp8266_ota_debug;
 
 //OTA SERVER IP RELATED
-static ip_addr_t _esp8266_ota_server_ip;
+static uint8_t* _esp8266_ota_server_ip;
 static uint16_t _esp8266_ota_server_port;
 static char* _esp8266_ota_server_path;
 
 //CALLBACK FUNCTION POINTERS
-static void (*_esp8266_ota_done_user_cb)(bool);
 //END LOCAL LIBRARY VARIABLES/////////////////////////////////
 
 //CONFIGURATION FUNCTIONS
@@ -44,33 +44,37 @@ void ICACHE_FLASH_ATTR ESP8266_OTA_SetDebug(uint8_t debug_on)
     _esp8266_ota_debug = debug_on;
 }
 
-void ICACHE_FLASH_ATTR ESP8266_OTA_Initialize(ip_addr_t server_ip, uint16_t server_port, char* server_path)
+void ICACHE_FLASH_ATTR ESP8266_OTA_Initialize(uint8_t* server_ip, uint16_t server_port, char* server_path)
 {
     //INITIALIZE ESP8266 OTA PARAMETERS
 
-    _esp8266_ota_server_ip = server_ip;
-    _esp8266_ota_server_port = server_port;
-    _esp8266_ota_server_path = server_path;
-
-    if(_esp8266_ota_debug)
-	{
-		os_printf("ESP8266 : OTA : Initialized ota with specified!\n");
-		os_printf("ESP8266 : OTA : server ip = %d.%d.%d.%d\n", IP2STR(&_esp8266_ota_server_ip));
-		os_printf("ESP8266 : OTA : server port = %u\n", _esp8266_ota_server_port);
-		os_printf("ESP8266 : OTA : server path = %s\n", _esp8266_ota_server_path);
-	}
+    os_printf("ESP8266 : OTA : To set ota server parameters, edit rboot-ota.h\n");
 }
 
-void ICACHE_FLASH_ATTR ESP8266_OTA_SetCallbackFunctions(void (*ota_done_user_cb)(bool))
+void ICACHE_FLASH_ATTR ESP8266_OTA_Start(void)
 {
-    //SET USER CB FUNCTION
+    //START THE OTA PROCESS
+    
+    os_printf("ESP8266 : OTA : Starting...\n");
+    rboot_ota_start(&_esp8266_ota_done_cb);
+}
 
-    if(ota_done_user_cb != NULL)
+void ICACHE_FLASH_ATTR _esp8266_ota_done_cb(bool result, uint8_t rom_slot)
+{
+    //RBOOT OTA CB FUNCTION
+    char message[40];
+
+    if(result)
     {
-        _esp8266_ota_done_user_cb = ota_done_user_cb;
-        if(_esp8266_ota_debug)
-        {
-            os_printf("ESP8266 : OTA : User cb function set!\n");
-        }
+        os_sprintf("ESP8266 : OTA : Firmware updated. rebooting from rom %u\n", rom_slot);
+        os_printf(message);
+        rboot_set_current_rom(rom_slot);
+        system_restart();
     }
+    else
+    {
+        os_sprintf("ESP8266 : OTA : Firmware update failed !\n");
+        os_printf(message);
+    }
+    
 }

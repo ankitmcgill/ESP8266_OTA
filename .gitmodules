@@ -4,3 +4,6 @@
 [submodule "esptool2"]
 	path = esptool2
 	url = https://github.com/ankitmcgill/esptool2.git
+[submodule "rboot-sample"]
+	path = rboot-sample
+	url = https://github.com/ankitmcgill/rboot-sample.git
