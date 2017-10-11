@@ -200,6 +200,10 @@ MODULES		:= $(MODULES) user/libs/ESP8266_SYSINFO
 MODULES		:= $(MODULES) user/libs/ESP8266_TCP_SERVER
 MODULES		:= $(MODULES) user/libs/ESP8266_SSID_FRAMEWORK
 MODULES		:= $(MODULES) user/libs/ESP8266_FLASH
+MODULES		:= $(MODULES) user/libs/ESP8266_OTA
+MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot
+MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot/appcode
+MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot/build
 #MODULES		:= $(MODULES) user/libs/ESP8266_SNTP
 #MODULES		:= $(MODULES) user/libs/ESP8266_I2C
 #MODULES		:= $(MODULES) user/libs/RTC_DS1307
@@ -224,7 +228,7 @@ LD_SCRIPT = eagle.app.v6.ld
 ifneq ($(boot), none)
 ifneq ($(app),0)
     ifeq ($(size_map), 6)
-      LD_SCRIPT = eagle.app.v6.$(boot).1024.rboot.app$(app).ld
+      LD_SCRIPT = eagle.app.v6.$(boot).1024.app$(app).ld
     else
       ifeq ($(size_map), 5)
         #LD_SCRIPT = eagle.app.v6.$(boot).2048.ld
