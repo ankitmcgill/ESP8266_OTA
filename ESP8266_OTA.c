@@ -8,6 +8,11 @@
 * ANKIT BHATNAGAR
 * ANKIT.BHATNAGARINDIA@GMAIL.COM
 *
+* FOR A SUCCESSFULL COMPILATION, NEED TO ADD THE FOLLOWING MODULES TO THE MAKEFILE
+*   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot
+*   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot/appcode
+*   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot/build
+*
 * REFERENCES
 * ------------
 *		(1) rBoot
@@ -24,7 +29,7 @@ static uint8_t _esp8266_ota_debug;
 
 //OTA SERVER IP RELATED
 static ip_addr_t _esp8266_ota_server_ip;
-static ip_addr_t _esp8266_ota_server_port;
+static uint16_t _esp8266_ota_server_port;
 static char* _esp8266_ota_server_path;
 
 //CALLBACK FUNCTION POINTERS

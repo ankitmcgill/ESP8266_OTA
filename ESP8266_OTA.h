@@ -8,6 +8,11 @@
 * ANKIT BHATNAGAR
 * ANKIT.BHATNAGARINDIA@GMAIL.COM
 *
+* FOR A SUCCESSFULL COMPILATION, NEED TO ADD THE FOLLOWING MODULES TO THE MAKEFILE
+*   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot
+*   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot/appcode
+*   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot/build
+*
 * REFERENCES
 * ------------
 *		(1) rBoot
@@ -25,14 +30,14 @@
 #include "ip_addr.h"
 #include "espconn.h"
 #include "os_type.h"
-#include "rboot/rboot-ota.h"
+#include "rboot-api.h"
 
 
-#define ESP8266_OTA_HTTP_HEADER     "Connection: keep-alive\r\n"
-                                    "Cache-Control: no-cache\r\n"
-                                    "User-Agent: rBoot-Sample/1.0\r\n"
+#define ESP8266_OTA_HTTP_HEADER     "Connection: keep-alive\r\n"\
+                                    "Cache-Control: no-cache\r\n"\
+                                    "User-Agent: rBoot-Sample/1.0\r\n"\
                                     "Accept: */*\r\n\r\n"
-#define ESP8266_OTA_HTTP_STRING     "GET %s%s HTTP/1.1\r\nHost: "IPSTR"\r\n"
+#define ESP8266_OTA_HTTP_STRING     "GET %s%s HTTP/1.1\r\nHost: \"%s\"\r\n"
 
 //CUSTOM VARIABLE STRUCTURES/////////////////////////////
 //END CUSTOM VARIABLE STRUCTURES/////////////////////////
