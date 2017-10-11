@@ -1,0 +1,6 @@
+[submodule "rboot"]
+	path = rboot
+	url = https://github.com/ankitmcgill/rboot.git
+[submodule "esptool2"]
+	path = esptool2
+	url = https://github.com/ankitmcgill/esptool2.git
