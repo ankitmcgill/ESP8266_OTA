@@ -224,7 +224,7 @@ LD_SCRIPT = eagle.app.v6.ld
 ifneq ($(boot), none)
 ifneq ($(app),0)
     ifeq ($(size_map), 6)
-      LD_SCRIPT = eagle.app.v6.$(boot).1024.app$(app).ld
+      LD_SCRIPT = eagle.app.v6.$(boot).1024.rboot.app$(app).ld
     else
       ifeq ($(size_map), 5)
         #LD_SCRIPT = eagle.app.v6.$(boot).2048.ld
