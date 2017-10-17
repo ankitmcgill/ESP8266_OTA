@@ -48,6 +48,7 @@ static char* _esp8266_ota_filename_rom1;
 static os_timer_t _esp8266_ota_timer;
 
 //UPGRADE RELATED
+static ESP8266_OTA_OPERATION _esp8266_ota_current_operation;
 static ESP8266_OTA_UPGRADE_STATUS* _esp8266_ota_upgrade;
 
 //rboot RELATED
@@ -187,6 +188,69 @@ static void ICACHE_FLASH_ATTR _esp8266_ota_upgrade_recvcb(void *arg, char *pusrd
             ptrData += 4;
             //LENGTH OF DATA AFTER HEADER IN THIS CHUNK
             length -= (ptrData - pusrdata);
+
+            //CHECK WEATHER VERSION DATA OR FIRMWARE DATA
+            if(_esp8266_ota_current_operation == ESP8266_OTA_SERVER_OPERATION_GET_FILE_VERSION)
+            {
+                //VERSION DATA. WILL FIT IN 1 HTTP CHUNK
+                //PROCESS IT
+                char* ver_data = (char*)os_zalloc(50);
+                os_memcpy(ver_data, (uint8_t*)ptrData, length);
+                os_printf("ESP8266 : OTA : Version Data : %s\n", ver_data);
+                
+                //EXTRACT VERSION DATA
+                uint32_t version_maj = 0, version_min = 0;
+                
+                uint8_t counter= 7;
+                while(ver_data[counter] != ',')
+                {
+                    version_maj = (version_maj * 10) + (ver_data[counter]-48);
+                    counter++;
+                }
+
+                counter = 15;
+                while(ver_data[counter] != ',')
+                {
+                    version_min = (version_min * 10) + (ver_data[counter]-48);
+                    counter++;
+                }
+                
+                os_printf("ESP8266 : OTA : Extracted version info : major = %u, minor = %u\n", version_maj, version_min);
+                os_printf("ESP8266 : OTA : Running version info : major = %u, minor = %u\n", ESP8266_OTA_USER_FW_VERSION_MAJ, ESP8266_OTA_USER_FW_VERSION_MIN);
+
+                if(_esp8266_ota_is_server_fw_version_higher(version_maj, version_min)==true)
+                {
+                    //SERVER HAS NEWER FIRMWARE
+                    //NEED TO DO OTA
+                    os_printf("ESP8266 : OTA : Server FW is newer than current. Proceeding !\n");
+                    _esp8266_ota_current_operation = ESP8266_OTA_SERVER_OPERATION_GET_FILE_FW;
+                    //_esp8266_ota_upgrade_connect_cb(NULL);
+                    char* request = (char*)os_malloc(512);
+                    os_sprintf((char*)request,
+                            "GET %s%s HTTP/1.0\r\nHost: " IPSTR "\r\n" ESP8266_OTA_HTTP_HEADER,
+                            _esp8266_ota_server_path,
+                            (_esp8266_ota_upgrade->rom_slot == ESP8266_OTA_FLASH_BY_ADDR ? ESP8266_OTA_FILE : (_esp8266_ota_upgrade->rom_slot == 0 ? _esp8266_ota_filename_rom0 : _esp8266_ota_filename_rom1)),
+                            IP2STR(_esp8266_ota_server));
+        
+                    os_printf("HTTP REQUEST\n--------\n%s\n", request);
+        
+                    //SEND THE HTTP REQUEST, WITH TIMEOUT FOR REPLY
+                    os_timer_setfn(&_esp8266_ota_timer, (os_timer_func_t *)_esp8266_ota_rboot_ota_deinit, 0);
+                    os_timer_arm(&_esp8266_ota_timer, ESP8266_OTA_NETWORK_TIMEOUT_MS, 0);
+                    espconn_sent(_esp8266_ota_upgrade->conn, request, os_strlen((char*)request));
+                    os_free(request);
+                }
+                else
+                {
+                    //SERVER HAS OLDER FIRMWARE
+                    //NO NEED TO DO OTA
+                    os_printf("ESP8266 : OTA : Server FW is older than current. Ending !\n");
+                    _esp8266_ota_rboot_ota_deinit();
+                }
+                return;
+            }
+            
+            //FIRMWARE DATA
             //RUNNING TOTAL OF DOWNLOAD LENGTH
             _esp8266_ota_upgrade->total_len += length;
             //PROCESS CURRENT CHUNK
@@ -294,11 +358,28 @@ static void ICACHE_FLASH_ATTR _esp8266_ota_upgrade_connect_cb(void *arg)
         return;
     }
 
-    os_sprintf((char*)request,
-            "GET %s%s HTTP/1.0\r\nHost: " IPSTR "\r\n" ESP8266_OTA_HTTP_HEADER,
-            _esp8266_ota_server_path,
-            (_esp8266_ota_upgrade->rom_slot == ESP8266_OTA_FLASH_BY_ADDR ? ESP8266_OTA_FILE : (_esp8266_ota_upgrade->rom_slot == 0 ? _esp8266_ota_filename_rom0 : _esp8266_ota_filename_rom1)),
-            IP2STR(_esp8266_ota_server));
+    /*if(_esp8266_ota_current_operation == ESP8266_OTA_SERVER_OPERATION_GET_FILE_FW)
+    {
+        os_sprintf((char*)request,
+                "GET %s%s HTTP/1.0\r\nHost: " IPSTR "\r\n" ESP8266_OTA_HTTP_HEADER,
+                _esp8266_ota_server_path,
+                (_esp8266_ota_upgrade->rom_slot == ESP8266_OTA_FLASH_BY_ADDR ? ESP8266_OTA_FILE : (_esp8266_ota_upgrade->rom_slot == 0 ? _esp8266_ota_filename_rom0 : _esp8266_ota_filename_rom1)),
+                IP2STR(_esp8266_ota_server));
+    }*/
+    if(_esp8266_ota_current_operation == ESP8266_OTA_SERVER_OPERATION_GET_FILE_VERSION)
+    {
+        os_sprintf((char*)request,
+                "GET %s%s HTTP/1.0\r\nHost: " IPSTR "\r\n" ESP8266_OTA_HTTP_HEADER,
+                _esp8266_ota_server_path,
+                ESP8266_VERSION_FILENAME,
+                IP2STR(_esp8266_ota_server));
+    }
+    else
+    {
+        os_free(request);
+        _esp8266_ota_rboot_ota_deinit();
+        return;
+    }
     
     os_printf("HTTP REQUEST\n--------\n%s\n", request);
     
@@ -452,6 +533,9 @@ bool ICACHE_FLASH_ATTR _esp8266_ota_rboot_ota_start(ESP8266_OTA_CALLBACK callbac
 
     //SET UPDATE FLAG
     system_upgrade_flag_set(ESP8266_OTA_UPGRADE_FLAG_START);
+
+    //SET OPERATION
+    _esp8266_ota_current_operation = ESP8266_OTA_SERVER_OPERATION_GET_FILE_VERSION;
 
     //DNS LOOKUP
     result = espconn_gethostbyname(_esp8266_ota_upgrade->conn,

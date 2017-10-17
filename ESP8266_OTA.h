@@ -38,7 +38,9 @@
 
 //USER FIRMWARE VERSION NUMBER
 #define ESP8266_OTA_USER_FW_VERSION_MAJ 1
-#define ESP8266_OTA_USER_FW_VERSION_MIN 0
+#define ESP8266_OTA_USER_FW_VERSION_MIN 8
+
+#define ESP8266_VERSION_FILENAME    "app.ver"
 
 #define ESP8266_OTA_HTTP_HEADER     "Connection: keep-alive\r\n"\
                                     "Cache-Control: no-cache\r\n"\
@@ -62,6 +64,12 @@
 //END CUSTOM VARIABLE STRUCTURES/////////////////////////
 //USER CB FUNTION FORMAT TYPEDEF
 typedef void (*ESP8266_OTA_CALLBACK)(bool result, uint8 rom_slot);
+
+typedef enum
+{
+    ESP8266_OTA_SERVER_OPERATION_GET_FILE_VERSION=0,
+    ESP8266_OTA_SERVER_OPERATION_GET_FILE_FW
+} ESP8266_OTA_OPERATION;
 
 typedef struct {
 	uint8 rom_slot;   // rom slot to update, or FLASH_BY_ADDR
