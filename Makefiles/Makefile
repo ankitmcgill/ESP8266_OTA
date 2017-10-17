@@ -10,13 +10,20 @@
 #			as rboot using 2 sectors as compared to 1 by espressif
 #			supplied
 #		- Note : Need to also change the irom0 base address in the
-#						 ld files from 0x40201010 to 0x40202010
+#				 ld files from 0x40201010 to 0x40202010
 #
 #		USAGE:
 #				make BOOT=<none|new|old> APP=<1|2> SPI_SIZE_MAP=<1..6>
+#               make flashboot SPI_SIZE_MAP=|1..6| SPI_SPEED=40 SPI_MODE=QIO
+#               make flashall SPI_SIZE_MAP=|1..6| SPI_SPEED=40 SPI_MODE=QIO
+#               make flasherase
+#       
+#       TO MAKE VERSION FILE:
+#               make version MAJ=|x| MIN=|y|
+#               the version file generated is app.ver
 #
 #		TO BURN:
-#				esptool.py --port /dev/ttyUSB0 --baud 115200 write_flash -fs 32m-c1 -fm qio 0x0000 rboot.bin 0x02000 user1.4096.new.6.bin 0x102000 user2.4096.new.6.bin 0x3fc000 ../../esp-open-sdk/sdk/bin/esp_init_data_default.bin 0x3fe000 ../../esp-open-sdk/sdk/bin/blank.bin
+#				esptool.py --port /dev/ttyUSB0 --baud 115200 write_flash -fs 32m-c1 -fm qio 0x0000 rboot.bin 0x02000 user1.4096.new.6.bin 0x102000 user2.4096.new.6.bin 0x3fc000 esp_init_data_default.bin 0x3fe000 blank.bin
 #############################################################
 
 ##################################
@@ -35,12 +42,12 @@ FW_BASE		= firmware
 # COMPILER PATHS
 ##################################
 # Base directory for the compiler
-XTENSA_TOOLS_ROOT ?= $(HOME)/Espressif/esp-open-sdk/xtensa-lx106-elf/bin
+XTENSA_TOOLS_ROOT ?= /media/ankit/mydev/Toolchains/Expressif/esp-open-sdk/xtensa-lx106-elf/bin
 # base directory of the ESP8266 SDK package, absolute
-SDK_BASE	?= $(HOME)/Espressif/esp-open-sdk/sdk
+SDK_BASE	?= /media/ankit/mydev/Toolchains/Expressif/esp-open-sdk/sdk
 SDK_TOOLS	?= $(SDK_BASE)/tools
 # esptool path and port
-ESPTOOL ?= $(HOME)/Espressif/esp-open-sdk/esptool/esptool.py
+ESPTOOL ?= /media/ankit/mydev/Toolchains/Expressif/esp-open-sdk/esptool/esptool.py
 
 ##################################
 # FLASH OPTIONS
@@ -168,7 +175,7 @@ else
           ifeq ($(SPI_SIZE_MAP), 6)
             size_map = 6
             flash = 4096
-            flashimageoptions += -fs 32m
+            flashimageoptions += -fs 32m-c1
             ifeq ($(app), 2)
 							# for espressif supplied boot.bin address = 0x101000
 							# rboot needs 2 sectors,so address = 0x102000
@@ -195,15 +202,16 @@ TARGET = app
 MODULES		= user user/driver user/libs/
 MODULES		:= $(MODULES) user/libs/ESP8266_MDNS
 MODULES		:= $(MODULES) user/libs/ESP8266_GPIO
-MODULES   := $(MODULES) user/libs/ESP8266_SMARTCONFIG
+MODULES     := $(MODULES) user/libs/ESP8266_SMARTCONFIG
 MODULES		:= $(MODULES) user/libs/ESP8266_SYSINFO
 MODULES		:= $(MODULES) user/libs/ESP8266_TCP_SERVER
 MODULES		:= $(MODULES) user/libs/ESP8266_SSID_FRAMEWORK
 MODULES		:= $(MODULES) user/libs/ESP8266_FLASH
-MODULES		:= $(MODULES) user/libs/ESP8266_OTA
 MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot
 MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot/appcode
 MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot/build
+MODULES		:= $(MODULES) user/libs/ESP8266_OTA
+#MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot-sample
 #MODULES		:= $(MODULES) user/libs/ESP8266_SNTP
 #MODULES		:= $(MODULES) user/libs/ESP8266_I2C
 #MODULES		:= $(MODULES) user/libs/RTC_DS1307
@@ -274,8 +282,8 @@ SRC_DIR		:= $(MODULES)
 BUILD_DIR	:= $(addprefix $(BUILD_BASE)/,$(MODULES))
 SDK_LIBDIR	:= $(addprefix $(SDK_BASE)/,$(SDK_LIBDIR))
 SDK_INCDIR	:= $(addprefix -I$(SDK_BASE)/,$(SDK_INCDIR))
-SRC		:= $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.c))
-OBJ		:= $(patsubst %.c,$(BUILD_BASE)/%.o,$(SRC))
+SRC		    := $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.c))
+OBJ		    := $(patsubst %.c,$(BUILD_BASE)/%.o,$(SRC))
 LIBS		:= $(addprefix -l,$(LIBS))
 APP_AR		:= $(addprefix $(BUILD_BASE)/,$(TARGET)_app.a)
 TARGET_OUT	:= $(addprefix $(BUILD_BASE)/,$(TARGET).out)
@@ -373,8 +381,8 @@ else
 	$(ESPTOOL) -p $(ESPPORT) -b $(BAUD) write_flash $(flashimageoptions) 0x00000 $(SDK_BASE)/bin/boot_v1.1.bin
     else
     	ifeq ($(size_map), 6)
-		$(vecho) "Flash boot_v1.5 and +"
-		$(ESPTOOL) -p $(ESPPORT) -b $(BAUD) write_flash $(flashimageoptions) 0x00000 $(SDK_BASE)/bin/boot_v1.6.bin
+		$(vecho) "Flash rboot"
+		$(ESPTOOL) -p $(ESPPORT) -b $(BAUD) write_flash $(flashimageoptions) 0x00000 rboot.bin
         else
             ifeq ($(size_map), 5)
 		$(vecho) "Flash boot_v1.5 and +"
@@ -416,6 +424,11 @@ endif
 # 	download blank.bin to 0x3FE000 as initialization.
 # ===============================================================
 
+# MAKE VERSION FILE
+version:
+    $(file > app.ver, MAJOR=$(MAJ)\nMINOR=$(MIN))
+    $(vecho) "Version file written to app.ver"
+
 # FLASH SIZE
 flashinit:
 	$(vecho) "Flash init data default and blank data."
@@ -431,6 +444,14 @@ clean:
 	$(Q) rm -rf $(FW_BASE)
 
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))
+
+#flashall:
+#    #SPECIFICALLY FOR RBOOT + FLASH MAP = 6 (APP1 + APP2)
+#    $(ESPTOOL) -p $(ESPPORT) -b $(BAUD) write_flash $(flashimageoptions) 0x0000 rboot.bin 0x02000 user1.4096.new.6.bin 0x102000 user2.4096.new.6.bin 0x3fc000 esp_init_data_default.bin 0x3fe000 blank.bin
+#
+#flasherase:
+#    #ERASE FLASH
+#    $(ESPTOOL) -p $(ESPPORT) -b $(BAUD) erase_flash
 
 help:
 	@echo "# Root Level Makefile"

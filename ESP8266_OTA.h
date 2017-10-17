@@ -12,7 +12,12 @@
 *   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot
 *   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot/appcode
 *   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot/build
-*   MODULES		:= $(MODULES) user/libs/ESP8266_OTA/rboot-sample
+*
+* TO CHANGE THE SERVER PARAMETERS (IP / PORT / FILENAME), EDIT 
+* ./rboot-sample/rboot-ota.h
+*
+* NOTE : THE CODE FOR THE ACTUAL TCP HANDLING OF DATA, BURNING TO FLASH ETC IS COPIED
+*        VERBATIM FROM THE REPO rboot-sample
 *
 * REFERENCES
 * ------------
@@ -26,14 +31,14 @@
 #define _ESP8266_OTA_H_
 
 #include "osapi.h"
-#include "mem.h"
 #include "ets_sys.h"
-#include "ip_addr.h"
 #include "espconn.h"
 #include "os_type.h"
 #include "rboot-api.h"
-#include "rboot-ota.h"
 
+//USER FIRMWARE VERSION NUMBER
+#define ESP8266_OTA_USER_FW_VERSION_MAJ 1
+#define ESP8266_OTA_USER_FW_VERSION_MIN 0
 
 #define ESP8266_OTA_HTTP_HEADER     "Connection: keep-alive\r\n"\
                                     "Cache-Control: no-cache\r\n"\
@@ -41,19 +46,42 @@
                                     "Accept: */*\r\n\r\n"
 #define ESP8266_OTA_HTTP_STRING     "GET %s%s HTTP/1.1\r\nHost: \"%s\"\r\n"
 
+#define ESP8266_OTA_UPGRADE_FLAG_IDLE		0x00
+#define ESP8266_OTA_UPGRADE_FLAG_START		0x01
+#define ESP8266_OTA_UPGRADE_FLAG_FINISH		0x02
+
+#define ESP8266_OTA_FILE "file.bin"
+
+//TIMEOUT FOR INITIAL CONNECT & FIR EACH RCV
+#define ESP8266_OTA_NETWORK_TIMEOUT_MS  10000
+
+// USED TO INDICATE NON ROM FLASH
+#define ESP8266_OTA_FLASH_BY_ADDR       0xFF
+
 //CUSTOM VARIABLE STRUCTURES/////////////////////////////
 //END CUSTOM VARIABLE STRUCTURES/////////////////////////
+//USER CB FUNTION FORMAT TYPEDEF
+typedef void (*ESP8266_OTA_CALLBACK)(bool result, uint8 rom_slot);
+
+typedef struct {
+	uint8 rom_slot;   // rom slot to update, or FLASH_BY_ADDR
+	ESP8266_OTA_CALLBACK callback;  // user callback when completed
+	uint32 total_len;
+	uint32 content_len;
+	struct espconn *conn;
+	ip_addr_t ip;
+	rboot_write_status write_status;
+} ESP8266_OTA_UPGRADE_STATUS;
 
 //FUNCTION PROTOTYPES/////////////////////////////////////
 //CONFIGURATION FUNCTIONS
 void ICACHE_FLASH_ATTR ESP8266_OTA_SetDebug(uint8_t debug_on);
-void ICACHE_FLASH_ATTR ESP8266_OTA_Initialize(uint8_t* server_ip,
-											    uint16_t server_port,
-												char* server_path);
+void ICACHE_FLASH_ATTR ESP8266_OTA_Initialize(char* server, 
+                                                uint16_t server_port, 
+                                                char* server_path,
+                                                char* name_rom0,
+                                                char* name_rom1);
 //CONTROL FUNCTIONS
-void ICACHE_FLASH_ATTR ESP8266_OTA_Start(void);
-
-//INTERNAL CALLBACK FUNCTIONS
-void ICACHE_FLASH_ATTR _esp8266_ota_done_cb(bool result, uint8_t rom_slot);
+bool ICACHE_FLASH_ATTR ESP8266_OTA_Start();
 //END FUNCTION PROTOTYPES/////////////////////////////////
 #endif
