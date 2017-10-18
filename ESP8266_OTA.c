@@ -19,6 +19,11 @@
 * NOTE : THE CODE FOR THE ACTUAL TCP HANDLING OF DATA, BURNING TO FLASH ETC IS COPIED
 *        VERBATIM FROM THE REPO rboot-sample
 *
+*        ONCE YOU FLASH THE INITIAL FIRMWARE THROUGH SERIAL, MAKE SURE TO POWER RECYCLE
+*        THE BOARD. IF NOT DONE, ANY FUTURE OTA WILL UPGRADE THE FIRMWARE BUT WILL GIVE
+*        A wdt reset WHEN SOFT RESTARTING THE UNIT. AT THAT POINT YOU WOULD NEED TO POWER
+*        RECYCLE THE UNIT FOR THE NEW FIRMWARE TO LOAD. TO AVOID THIS, USE ABOVE
+*
 * REFERENCES
 * ------------
 *		(1) rBoot
@@ -358,14 +363,6 @@ static void ICACHE_FLASH_ATTR _esp8266_ota_upgrade_connect_cb(void *arg)
         return;
     }
 
-    /*if(_esp8266_ota_current_operation == ESP8266_OTA_SERVER_OPERATION_GET_FILE_FW)
-    {
-        os_sprintf((char*)request,
-                "GET %s%s HTTP/1.0\r\nHost: " IPSTR "\r\n" ESP8266_OTA_HTTP_HEADER,
-                _esp8266_ota_server_path,
-                (_esp8266_ota_upgrade->rom_slot == ESP8266_OTA_FLASH_BY_ADDR ? ESP8266_OTA_FILE : (_esp8266_ota_upgrade->rom_slot == 0 ? _esp8266_ota_filename_rom0 : _esp8266_ota_filename_rom1)),
-                IP2STR(_esp8266_ota_server));
-    }*/
     if(_esp8266_ota_current_operation == ESP8266_OTA_SERVER_OPERATION_GET_FILE_VERSION)
     {
         os_sprintf((char*)request,
